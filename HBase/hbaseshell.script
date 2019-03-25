@@ -1,0 +1,99 @@
+#create table
+create 'flighttracker', 'location', 'timetrack', 'delayinfo'
+create 'flightfull', 'location', 'timetrack', 'delayinfo'
+
+
+#upload csv to hbase
+hbase org.apache.hadoop.hbase.mapreduce.ImportTsv -Dimporttsv.separator=',' -Dimporttsv.columns='HBASE_ROW_KEY,location:ORIGIN_AIRPORT_ID,location:DEST_AIRPORT_ID,timetrack:CRS_DEP_TIME,timetrack:CRS_ARR_TIME,timetrack:DEP_TIME,timetrack:ARR_TIME,delayinfo:DEP_DELAY,delayinfo:ARR_DELAY' flighttracker /user/limingming/input/fulldata
+
+#uploade file to s3
+aws s3 cp /Users/limingming/IdeaProjects/predata/fulldata.csv s3://cs6240projecttest
+
+aws s3 mb s3://cs6240projecttest
+
+#
+aws emr list-clusters
+aws emr list-instances --cluster-id j-1JWK28AMTN7DJ
+aws emr describe-cluster --cluster-id j-1JWK28AMTN7DJ
+ssh -i bigdata.pem hadoop@ec2-18-205-59-10.compute-1.amazonaws.com
+
+aws emr describe-cluster --cluster-id j-3I3RKHZV4ZJLP
+
+ssh -i bigdata.pem hadoop@ec2-34-236-187-119.compute-1.amazonaws.com
+ssh -i bigdata.pem -N -D 8157 hadoop@ec2-34-236-187-119.compute-1.amazonaws.com
+
+hbase org.apache.hadoop.hbase.mapreduce.ImportTsv -Dimporttsv.separator=',' -Dimporttsv.columns='HBASE_ROW_KEY,location:ORIGIN_AIRPORT_ID,location:DEST_AIRPORT_ID,timetrack:CRS_DEP_TIME,timetrack:CRS_ARR_TIME,timetrack:DEP_TIME,timetrack:ARR_TIME,delayinfo:DEP_DELAY,delayinfo:ARR_DELAY' flighttracker /project/sampleflight.csv
+
+aws: jar upload-app-aws delete-output-aws
+	aws emr create-cluster \
+		--name "Testing hbase" \
+		--release-label ${aws.emr.release} \
+		--instance-groups '[{"InstanceCount":${aws.num.nodes},"InstanceGroupType":"CORE","InstanceType":"${aws.instance.type}"},{"InstanceCount":1,"InstanceGroupType":"MASTER","InstanceType":"${aws.instance.type}"}]' \
+	    --applications Name=HBase --use-default-roles --ec2-attributes KeyName=myKey \
+	    --steps '[{"Args":["${job.name}","s3://${aws.bucket.name}/${aws.input}","s3://${aws.bucket.name}/${aws.output}"],"Type":"CUSTOM_JAR","Jar":"s3://${aws.bucket.name}/${jar.name}","ActionOnFailure":"TERMINATE_CLUSTER","Name":"Custom JAR"}]' \
+		--log-uri s3://${aws.bucket.name}/${aws.log.dir} \
+		--ec2-attributes SubnetId=${aws.subnet.id} \
+		--use-default-roles \
+		--enable-debugging \
+		--auto-terminate
+
+s3-dist-cp --src s3://cs6240projecttest/fulldata.csv --dest /project/test
+
+#bak
+HADOOP_CLASSPATH=`${HBASE_HOME}/bin/hbase classpath` ${HADOOP_HOME}/bin/hadoop jar ${HBASE_HOME}/hbase-VERSION.jar importtsv
+HADOOP_CLASSPATH=`${HBASE_HOME}/bin/hbase classpath` ${HADOOP_HOME}/bin/hadoop jar ${HBASE_HOME}/hbase-VERSION.jar importtsv -Dimporttsv.columns=HBASE_ROW_KEY,location:ORIGIN_AIRPORT_ID,location:DEST_AIRPORT_ID,timetrack:CRS_DEP_TIME,timetrack:CRS_ARR_TIME,timetrack:DEP_TIME,timetrack:ARR_TIME,delayinfo:DEP_DELAY,delayinfo:ARR_DELAY flighttracker hdfs:///project/sampleflight.csv
+
+hadoop jar /usr/lib/hbase/lib/hbase-hadoop2-compat-1.4.6.jar ImporTtsv -Dimporttsv.columns=HBASE_ROW_KEY,location:ORIGIN_AIRPORT_ID,location:DEST_AIRPORT_ID,timetrack:CRS_DEP_TIME,timetrack:CRS_ARR_TIME,timetrack:DEP_TIME,timetrack:ARR_TIME,delayinfo:DEP_DELAY,delayinfo:ARR_DELAY flighttracker hdfs:///project/sampleflight.csv
+/usr/bin/hbase org.apache.hadoop.hbase.mapreduce.ImportTsv -Dimporttsv.separator="," –Dimporttsv.columns=”HBASE_ROW_KEY,FL_DATE,location:ORIGIN_AIRPORT_ID,location:DEST_AIRPORT_ID,timetrack:CRS_DEP_TIME,timetrack:CRS_ARR_TIME,timetrack:DEP_TIME,timetrack:ARR_TIME,delayinfo:DEP_DELAY,delayinfo:ARR_DELAY" flightfull hdfs:///project/fulldata.csv
+
+
+hadoop jar \
+hbase-server-1.4.6.jar \
+importtsv \
+-libjars /opt/cloudera/parcels/CDH-5.2.1-1.cdh5.2.1.p0.12/jars/high-scale-lib-1.1.1.jar \
+-Dimporttsv.separator=, -Dimporttsv.bulk.output=output \
+-Dimporttsv.columns=HBASE_ROW_KEY,f:count wordcount \
+word_count.csv
+
+
+
+
+#aws upload data
+hadoop jar  /usr/lib/hbase/lib/hbase-server-1.4.6.jar ImporTtsv
+hadoop jar /usr/lib/hbase/lib/hbase-server-1.4.6.jar completebulkload hdfs:///project/sampleflight.csv flighttracker
+
+
+#insert test
+put 'flighttracker', '12/1/2012', 'location:OriginAirportID', '12478'
+
+#old column name
+location:DestAirportID,timetrack:CRSDepTime,timetrack:CRSArrTime,timetrack:DepTime,timetrack:ArrTime,delayinfo:DepDelayMinutes,delayinfo:ArrDelayMinutes
+
+#uploade to Hbase
+HADOOP_CLASSPATH=`${HBASE_HOME}/bin/hbase classpath` ${HADOOP_HOME}/bin/hadoop jar ${HBASE_HOME}/hbase-VERSION.jar importtsv -Dimporttsv.columns=HBASE_ROW_KEY,FL_DATE,location:ORIGIN_AIRPORT_ID,location:DEST_AIRPORT_ID,timetrack:CRS_DEP_TIME,timetrack:CRS_ARR_TIME,timetrack:DEP_TIME,timetrack:ARR_TIME,delayinfo:DEP_DELAY,delayinfo:ARR_DELAY -Dimporttsv.bulk.output=/hbase flighttracker /user/limingming/input/test
+
+#uploade to Hbase
+HADOOP_CLASSPATH=`${HBASE_HOME}/bin/hbase classpath` ${HADOOP_HOME}/bin/hadoop jar ${HBASE_HOME}/hbase-VERSION.jar importtsv -Dimporttsv.columns=HBASE_ROW_KEY,FL_DATE,location:ORIGIN_AIRPORT_ID,location:DEST_AIRPORT_ID,timetrack:CRS_DEP_TIME,timetrack:CRS_ARR_TIME,timetrack:DEP_TIME,timetrack:ARR_TIME,delayinfo:DEP_DELAY,delayinfo:ARR_DELAY flighttracker /user/limingming/input/test
+
+#upload to hdfs
+/Users/limingming/Organization/hadoopSpark/hadoop-2.9.1/bin/hdfs dfs -put /Users/limingming/IdeaProjects/predata/fulldata.csv /user/limingming/input/fulldata
+
+#check upload
+/Users/limingming/Organization/hadoopSpark/hadoop-2.9.1/bin/hdfs dfs -ls /user/limingming/input/fulldata
+
+#make file
+/Users/limingming/Organization/hadoopSpark/hadoop-2.9.1/bin/hdfs dfs -mkdir /user/limingming/input/test
+
+#delete file
+/Users/limingming/Organization/hadoopSpark/hadoop-2.9.1/bin/hdfs dfs -rm -r /user/limingming/input/output1.csv
+
+#check job list
+hadoop job -list
+
+#kill job
+hadoop job -kill $jobId
+
+#stop hdfs
+/Users/limingming/Organization/hadoopSpark/hadoop-2.9.1/sbin/stop-dfs.sh
+
+/Users/limingming/Organization/hadoopSpark/hadoop-2.9.1/sbin/stop-yarn.sh
